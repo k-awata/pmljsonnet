@@ -1,0 +1,243 @@
+﻿!!PMLJSONNETPATH()
+import '$!!PMLJSONNETPATH'
+handle any
+endhandle
+
+-- PMLJSON object provides an interface between PML object and JSON string.
+define object PMLJSON
+    member .net is PMLJsonNet
+endobject
+
+-- Parse method parses a JSON string and stores the result to the specified object.
+define method .Parse(!json is STRING, !object is ANY)
+    !this.net.Parse(!json)
+    !this.Unmarshal(!object)
+endmethod
+
+-- Parse method parses a JSON file and stores the result to the specified object.
+define method .Parse(!file is FILE, !object is ANY)
+    if not !file.Exists() then
+        return error 1 'File $!<file> does not exist.'
+    endif
+    !this.net.ReadFile(!file.Name())
+    !this.Unmarshal(!object)
+endmethod
+
+-- Stringify method returns a JSON string from the specified object data.
+define method .Stringify(!object is ANY) is STRING
+    !this.Marshal(!object)
+    return !this.net.String()
+endmethod
+
+-- WriteFile method writes the specified object data to a JSON file.
+define method .WriteFile(!file is FILE, !object is ANY)
+    !this.WriteFile(!file, !object, 2)
+endmethod
+
+-- WriteFile method writes the specified object data to a JSON file with the specified indentation width.
+define method .WriteFile(!file is FILE, !object is ANY, !indent is REAL)
+    !this.Marshal(!object)
+    !this.net.WriteFile(!file.Name(), !indent)
+endmethod
+
+-- CreateNewObject method returns a new PML object with the corresponded type to the PMLJsonNet data type.
+define method .CreateNewObject() is ANY
+    !nettype = !this.net.GetValueType()
+    if !nettype eq 'Object' then
+        return object DICTIONARY()
+    elseif !nettype eq 'Array' then
+        return object ARRAY()
+    elseif !nettype eq 'Boolean' then
+        return object BOOLEAN()
+    elseif !nettype inset('Integer', 'Float') then
+        return object REAL()
+    endif
+    return object STRING()
+endmethod
+
+-- GetObjectMemberNames returns the specified object member names from the pmlobj file.
+define method .GetObjectMemberNames(!object is ANY) is ARRAY
+    !result = object ARRAY()
+    !file = object FILE(!!PML.GetPathName(!object.ObjectType().LowCase() + '.pmlobj'))
+    handle any
+        !result = !object.Attributes()
+        handle any
+        endhandle
+        return !result
+    endhandle
+    !defobj = false
+    do !line values !file.ReadFile()
+        if !line.Trim().LowCase().MatchWild('define object *') then
+            !defobj = true
+        endif
+        break if !line.Trim().LowCase().MatchWild('endobject')
+        skip if not !defobj
+        !tokens = !line.Trim().Split()
+        skip if !tokens.Size() ne 4
+        skip if !tokens[1].LowCase() ne 'member'
+        skip if !tokens[3].LowCase() ne 'is'
+        !result.Append(!tokens[2].After('.'))
+    enddo
+    return !result
+endmethod
+
+-- Unmarshal method maps the PMLJsonNet data to the specified STRING object.
+define method .Unmarshal(!object is STRING)
+    if !this.net.GetValueType() eq 'Null' then
+        !object = object STRING()
+    else
+        !object = !this.net.GetValue()
+    endif
+endmethod
+
+-- -- Unmarshal method maps the PMLJsonNet data to the specified BOOLEAN object.
+define method .Unmarshal(!object is BOOLEAN)
+    !object = !this.net.GetValue().Boolean()
+endmethod
+
+-- -- Unmarshal method maps the PMLJsonNet data to the specified REAL object.
+define method .Unmarshal(!object is REAL)
+    !object = !this.net.GetValue().Real()
+endmethod
+
+-- -- Unmarshal method maps the PMLJsonNet data to the specified DBREF object.
+define method .Unmarshal(!object is DBREF)
+    !object = !this.net.GetValue().DBRef()
+endmethod
+
+-- Unmarshal method maps the PMLJsonNet data to the specified ARRAY object.
+define method .Unmarshal(!object is ARRAY)
+    using namespace 'PMLJsonNet'
+    !object = object ARRAY()
+    do !i to !this.net.GetArraySize()
+        !child = object PMLJSON()
+        !child.net = !this.net.GetArrayItem(!i)
+        !new = !child.CreateNewObject()
+        !child.Unmarshal(!new)
+        !object.Append(!new)
+        !new.Delete()
+    enddo
+endmethod
+
+-- Unmarshal method maps the PMLJsonNet data to the specified DICTIONARY object.
+define method .Unmarshal(!object is DICTIONARY)
+    using namespace 'PMLJsonNet'
+    if !this.net.GetValueType() eq 'Null' then
+        !object = object DICTIONARY()
+    endif
+    do !name values !this.net.GetPropertyNames()
+        !child = object PMLJSON()
+        !child.net = !this.net.GetProperty(!name)
+        !new = !child.CreateNewObject()
+        !child.Unmarshal(!new)
+        !object.SetValue(!name, !new, true)
+        !new.Delete()
+    enddo
+endmethod
+
+-- Unmarshal method maps the PMLJsonNet data to the specified object with another type.
+define method .Unmarshal(!object is ANY)
+    using namespace 'PMLJsonNet'
+    !nettype = !this.net.GetValueType()
+    !objtype = !object.ObjectType()
+    if !nettype eq 'Null' then
+        !object = object $!<objtype>()
+    elseif !nettype ne 'Object' then
+        !object = object $!<objtype>(!this.net.GetValue())
+        return
+    endif
+    do !name values !this.net.GetPropertyNames()
+        !att = !name.UpCase()
+        !objtype = !object.Attribute(!att).ObjectType()
+        handle any
+            skip
+        endhandle
+        !child = object PMLJSON()
+        !child.net = !this.net.GetProperty(!name)
+        !new = object $!<objtype>()
+        !child.Unmarshal(!new)
+        !object.Attribute(!att) = !new
+        !new.Delete()
+    enddo
+endmethod
+
+-- Marshal method sets the PMLJsonNet data from the specified STRING object.
+define method .Marshal(!object is STRING)
+    using namespace 'PMLJsonNet'
+    !this.net = object PMLJsonNet()
+    if !object.Unset() then
+        return
+    endif
+    !this.net.SetValue(!object)
+endmethod
+
+-- Marshal method sets the PMLJsonNet data from the specified BOOLEAN object.
+define method .Marshal(!object is BOOLEAN)
+    using namespace 'PMLJsonNet'
+    !this.net = object PMLJsonNet()
+    if !object.Unset() then
+        return
+    endif
+    !this.net.SetValue(!object)
+endmethod
+
+-- Marshal method sets the PMLJsonNet data from the specified REAL object.
+define method .Marshal(!object is REAL)
+    using namespace 'PMLJsonNet'
+    !this.net = object PMLJsonNet()
+    if !object.Unset() then
+        return
+    endif
+    if !object.Unit().IsNull() then
+        !this.net.SetValue(!object)
+    else
+        !this.net.SetValue(!object.String())
+    endif
+endmethod
+
+-- Marshal method sets the PMLJsonNet data from the specified DBREF object.
+define method .Marshal(!object is DBREF)
+    using namespace 'PMLJsonNet'
+    !this.net = object PMLJsonNet()
+    if !object.Unset() then
+        return
+    endif
+    !this.net.SetValue(!object.name)
+endmethod
+
+-- Marshal method sets the PMLJsonNet data from the specified ARRAY object.
+define method .Marshal(!object is ARRAY)
+    using namespace 'PMLJsonNet'
+    !this.net = object PMLJsonNet('[]')
+    do !item values !object
+        !child = object PMLJSON()
+        !child.Marshal(!item)
+        !this.net.AddArrayItem(!child.net)
+    enddo
+endmethod
+
+-- Marshal method sets the PMLJsonNet data from the specified DICTIONARY object.
+define method .Marshal(!object is DICTIONARY)
+    using namespace 'PMLJsonNet'
+    !this.net = object PMLJsonNet('{}')
+    do !i indices !object.keys
+        !child = object PMLJSON()
+        !child.Marshal(!object.values[!i])
+        !this.net.AddProperty(!object.keys[!i], !child.net)
+    enddo
+endmethod
+
+-- Marshal method sets the PMLJsonNet data from the specified object with another type.
+define method .Marshal(!object is ANY)
+    using namespace 'PMLJsonNet'
+    !this.net = object PMLJsonNet()
+    !names = !this.GetObjectMemberNames(!object)
+    if !names.Empty() and !object.Set() then
+        !this.net.SetValue(!object.String())
+    endif
+    do !name values !names
+        !child = object PMLJSON()
+        !child.Marshal(!object.Attribute(!name.UpCase()))
+        !this.net.AddProperty(!name, !child.net)
+    enddo
+endmethod

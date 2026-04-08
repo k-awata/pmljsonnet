@@ -1,0 +1,189 @@
+﻿!!PMLJSONNETPATH()
+import '$!!PMLJSONNETPATH'
+handle any
+endhandle
+
+define object PMLJsonNetTest
+endobject
+
+define method .testToString(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+
+    !expected = 'null'
+    !json = object PMLJsonNet()
+    !assert.equal(!expected, !json.String())
+
+    !expected = '"foo"'
+    !json = object PMLJsonNet(!expected)
+    !assert.equal(!expected, !json.String())
+
+    !expected = '["foo","bar","baz"]'
+    !json = object PMLJsonNet(!expected)
+    !assert.equal(!expected, !json.String())
+endmethod
+
+define method .testReadFile(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !file = object FILE('%temp%\pmljsonnettest.json')
+    !json = object PMLJsonNet()
+
+    !file.WriteFile('OVERWRITE', Split('{
+    "foo": 123,
+    "bar": 456,
+    "baz": 789
+}', '
+'))
+    !json.ReadFile(!file.Name())
+    !assert.equal('{"foo":123,"bar":456,"baz":789}', !json.String())
+endmethod
+
+define method .testWriteFile(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !file = object FILE('%temp%\pmljsonnettest.json')
+    !json = object PMLJsonNet('{"foo":123,"bar":456,"baz":789}')
+
+    !json.WriteFile(!file.Name(), 0)
+    !assert.equal(Split('{"foo":123,"bar":456,"baz":789}'), !file.ReadFile())
+
+    !json.WriteFile(!file.Name(), 2)
+    !assert.equal(Split('{
+  "foo": 123,
+  "bar": 456,
+  "baz": 789
+}', '
+'), !file.ReadFile())
+
+    !json.WriteFile(!file.Name(), 4)
+    !assert.equal(Split('{
+    "foo": 123,
+    "bar": 456,
+    "baz": 789
+}', '
+'), !file.ReadFile())
+endmethod
+
+define method .testGetValueType(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+
+    !json = object PMLJsonNet()
+    !assert.equal('Null', !json.GetValueType())
+
+    !json = object PMLJsonNet('{}')
+    !assert.equal('Object', !json.GetValueType())
+
+    !json = object PMLJsonNet('[]')
+    !assert.equal('Array', !json.GetValueType())
+
+    !json = object PMLJsonNet('123')
+    !assert.equal('Integer', !json.GetValueType())
+
+    !json = object PMLJsonNet('0.123')
+    !assert.equal('Float', !json.GetValueType())
+
+    !json = object PMLJsonNet('"foo"')
+    !assert.equal('String', !json.GetValueType())
+
+    !json = object PMLJsonNet('true')
+    !assert.equal('Boolean', !json.GetValueType())
+endmethod
+
+define method .testGetValue(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+
+    !json = object PMLJsonNet()
+    !assert.equal('', !json.GetValue())
+
+    !json = object PMLJsonNet('"foo"')
+    !assert.equal('foo', !json.GetValue())
+
+    !json = object PMLJsonNet('["foo","bar","baz"]')
+    !assert.equal('["foo","bar","baz"]', !json.GetValue())
+endmethod
+
+define method .testSetValue(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+
+    !json = object PMLJsonNet()
+    !json.SetValue('foo')
+    !assert.equal('"foo"', !json.String())
+
+    !json = object PMLJsonNet()
+    !json.SetValue(1.0)
+    !assert.equal('1', !json.String())
+
+    !json = object PMLJsonNet()
+    !json.SetValue(0.123)
+    !assert.equal('0.123', !json.String())
+
+    !json = object PMLJsonNet()
+    !json.SetValue(true)
+    !assert.equal('true', !json.String())
+
+    !json = object PMLJsonNet()
+    !json.SetValue(false)
+    !assert.equal('false', !json.String())
+endmethod
+
+define method .testGetArraySize(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+
+    !json = object PMLJsonNet()
+    !assert.equal(0, !json.GetArraySize())
+
+    !json = object PMLJsonNet('[]')
+    !assert.equal(0, !json.GetArraySize())
+
+    !json = object PMLJsonNet('["foo","bar","baz"]')
+    !assert.equal(3, !json.GetArraySize())
+endmethod
+
+define method .testGetArrayItem(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+
+    !json = object PMLJsonNet('["foo","bar","baz"]')
+    !assert.equal('"foo"', !json.GetArrayItem(1).String())
+    !assert.equal('"bar"', !json.GetArrayItem(2).String())
+    !assert.equal('"baz"', !json.GetArrayItem(3).String())
+endmethod
+
+define method .testAddArrayItem(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+
+    !json = object PMLJsonNet()
+    !json.AddArrayItem(object PMLJsonNet('"foo"'))
+    !json.AddArrayItem(object PMLJsonNet('"bar"'))
+    !json.AddArrayItem(object PMLJsonNet('"baz"'))
+    !assert.equal('["foo","bar","baz"]', !json.String())
+endmethod
+
+define method .testGetPropertyNames(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+
+    !json = object PMLJsonNet()
+    !assert.equal(object ARRAY(), !json.GetPropertyNames())
+
+    !json = object PMLJsonNet('{}')
+    !assert.equal(object ARRAY(), !json.GetPropertyNames())
+
+    !json = object PMLJsonNet('{"foo":123,"bar":456,"baz":789}')
+    !assert.equal(Split('foo bar baz'), !json.GetPropertyNames())
+endmethod
+
+define method .testGetProperty(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+
+    !json = object PMLJsonNet('{"foo":123,"bar":456,"baz":789}')
+    !assert.equal('123', !json.GetProperty('foo').String())
+    !assert.equal('456', !json.GetProperty('bar').String())
+    !assert.equal('789', !json.GetProperty('baz').String())
+endmethod
+
+define method .testAddProperty(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+
+    !json = object PMLJsonNet()
+    !json.AddProperty('foo', object PMLJsonNet('123'))
+    !json.AddProperty('bar', object PMLJsonNet('456'))
+    !json.AddProperty('baz', object PMLJsonNet('789'))
+    !assert.equal('{"foo":123,"bar":456,"baz":789}', !json.String())
+endmethod

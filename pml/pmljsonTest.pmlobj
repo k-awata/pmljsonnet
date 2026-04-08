@@ -1,0 +1,465 @@
+﻿define object pmljsonTest
+endobject
+
+define method .testFileReadWrite(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !file = object FILE('%temp%\pmljsontest.json')
+    !expected = object POSITION('N 123')
+    !json = object PMLJSON()
+    !json.WriteFile(!file, !expected)
+    !actual = object POSITION('N 0')
+    !assert.notEqual(!expected, !actual)
+    !json.Parse(!file, !actual)
+    !assert.equal(!expected, !actual)
+endmethod
+
+define method .testCreateNewObject(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+
+    !json = object PMLJSON()
+
+    !json.net.Parse('{}')
+    !assert.instanceOf(!json.CreateNewObject(), 'DICTIONARY')
+
+    !json.net.Parse('[]')
+    !assert.instanceOf(!json.CreateNewObject(), 'ARRAY')
+
+    !json.net.Parse('true')
+    !assert.instanceOf(!json.CreateNewObject(), 'BOOLEAN')
+
+    !json.net.Parse('123')
+    !assert.instanceOf(!json.CreateNewObject(), 'REAL')
+
+    !json.net.Parse('0.123')
+    !assert.instanceOf(!json.CreateNewObject(), 'REAL')
+
+    !json.net.Parse('"foo"')
+    !assert.instanceOf(!json.CreateNewObject(), 'STRING')
+
+    !json.net.Parse('null')
+    !assert.instanceOf(!json.CreateNewObject(), 'STRING')
+endmethod
+
+define method .testGetObjectMemberNames(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+
+    -- Object defined from a file
+    !expected[1] = 'xLength'
+    !expected[2] = 'yLength'
+    !expected[3] = 'zLength'
+    !expected[4] = 'position'
+    !expected[5] = 'orientation'
+    !assert.equal(!expected, !json.GetObjectMemberNames(object GMFBOX()))
+    !expected.Delete()
+
+    -- PML native object
+    !expected[1] = 'EAST'
+    !expected[2] = 'NORTH'
+    !expected[3] = 'ORIGIN'
+    !expected[4] = 'UP'
+    !assert.equal(!expected, !json.GetObjectMemberNames(object POSITION()))
+    !expected.Delete()
+
+    -- Object with no member
+    !expected = object ARRAY()
+    !assert.equal(!expected, !json.GetObjectMemberNames(object BLOCK()))
+endmethod
+
+define method .testParseString(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object STRING()
+    !json.Parse('"foo bar baz"', !actual)
+    !assert.equal('foo bar baz', !actual)
+endmethod
+
+define method .testParseStringWithBackslashes(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object STRING()
+    !json.Parse('"foo\\bar\\baz"', !actual)
+    !assert.equal('foo\bar\baz', !actual)
+endmethod
+
+define method .testParseStringWithQuotes(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object STRING()
+    !json.Parse('"foo \"bar\" baz"', !actual)
+    !assert.equal('foo "bar" baz', !actual)
+endmethod
+
+define method .testParseStringWithTabs(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object STRING()
+    !json.Parse('"foo\tbar\tbaz"', !actual)
+    !assert.equal('foo	bar	baz', !actual)
+endmethod
+
+define method .testParseStringWithLFs(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object STRING()
+    !json.Parse('"foo\nbar\nbaz"', !actual)
+    !assert.equal('foo
+bar
+baz', !actual)
+endmethod
+
+define method .testParseStringNull(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = 'foo'
+    !assert.isSet(!actual)
+    !json.Parse('null', !actual)
+    !assert.isUnset(!actual)
+endmethod
+
+define method .testParseBooleanTrue(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object BOOLEAN()
+    !json.Parse('true', !actual)
+    !assert.equal(true, !actual)
+endmethod
+
+define method .testParseBooleanFalse(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object BOOLEAN()
+    !json.Parse('false', !actual)
+    !assert.equal(false, !actual)
+endmethod
+
+define method .testParseBooleanNull(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = true
+    !assert.isSet(!actual)
+    !json.Parse('null', !actual)
+    !assert.isUnset(!actual)
+endmethod
+
+define method .testParseReal(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object REAL()
+    !json.Parse('1234567890', !actual)
+    !assert.equal(1234567890, !actual)
+endmethod
+
+define method .testParseRealWithPoint(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object REAL()
+    !json.Parse('0.123', !actual)
+    !assert.equal(0.123, !actual)
+endmethod
+
+define method .testParseRealWithMinus(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object REAL()
+    !json.Parse('-123', !actual)
+    !assert.equal(-123, !actual)
+endmethod
+
+define method .testParseRealWithEx(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object REAL()
+    !json.Parse('123E4', !actual)
+    !assert.equal(1230000, !actual)
+endmethod
+
+define method .testParseRealWithExPlus(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object REAL()
+    !json.Parse('123E+4', !actual)
+    !assert.equal(1230000, !actual)
+endmethod
+
+define method .testParseRealWithExMinus(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object REAL()
+    !json.Parse('123E-4', !actual)
+    !assert.equal(0.0123, !actual)
+endmethod
+
+define method .testParseRealNull(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = 123
+    !assert.isSet(!actual)
+    !json.Parse('null', !actual)
+    !assert.isUnset(!actual)
+endmethod
+
+define method .testParseDBRef(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object DBREF()
+    !json.Parse('"/*"', !actual)
+    !assert.equal(object DBREF('/*'), !actual)
+endmethod
+
+define method .testParseDBRefNull(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object DBREF('/*')
+    !assert.isSet(!actual)
+    !json.Parse('null', !actual)
+    !assert.isUnset(!actual)
+endmethod
+
+define method .testParseArray(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !expected[1] = object DICTIONARY()
+    !expected[1].SetValue('foo', 123)
+    !expected[1].SetValue('bar', 456)
+    !expected[1].SetValue('baz', 789)
+    !expected[2] = Split('foo bar baz')
+    !expected[3] = true
+    !expected[4] = 123
+    !expected[5] = 0.123
+    !expected[6] = 'foo'
+    !expected[7] = object STRING()
+    !json = object PMLJSON()
+    !actual = object ARRAY()
+    !json.Parse('[{"foo":123,"bar":456,"baz":789},["foo","bar","baz"],true,123,0.123,"foo",null]', !actual)
+    !assert.equal(!expected, !actual)
+endmethod
+
+define method .testParseArrayNull(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = Split('foo')
+    !assert.isSet(!actual)
+    !json.Parse('null', !actual)
+    !assert.isUnset(!actual)
+endmethod
+
+define method .testParseDictionary(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !dict = object DICTIONARY()
+    !dict.SetValue('foo', 123)
+    !dict.SetValue('bar', 456)
+    !dict.SetValue('baz', 789)
+    !expected = object DICTIONARY()
+    !expected.SetValue('dictionary', !dict)
+    !expected.SetValue('array', Split('foo bar baz'))
+    !expected.SetValue('boolean', true)
+    !expected.SetValue('integer', 123)
+    !expected.SetValue('float', 0.123)
+    !expected.SetValue('string', 'foo')
+    !expected.SetValue('null', object STRING(), true)
+    !json = object PMLJSON()
+    !actual = object DICTIONARY()
+    !json.Parse('{
+    "dictionary": { "foo": 123, "bar": 456, "baz": 789 },
+    "array": ["foo", "bar", "baz"],
+    "boolean": true,
+    "integer": 123,
+    "float": 0.123,
+    "string": "foo",
+    "null": null
+}', !actual)
+    !assert.equal(!expected, !actual)
+endmethod
+
+define method .testParseDictionaryWithReplacing(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object DICTIONARY()
+    !actual.SetValue('foo', 123)
+    !actual.SetValue('bar', 456)
+    !actual.SetValue('baz', 789)
+    !json.Parse('{"bar":555}', !actual)
+    !assert.equal(123, !actual.values[!actual.keys.FindFirst('foo')])
+    !assert.equal(555, !actual.values[!actual.keys.FindFirst('bar')])
+    !assert.equal(789, !actual.values[!actual.keys.FindFirst('baz')])
+endmethod
+
+define method .testParseDictionaryNull(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object DICTIONARY()
+    !actual.SetValue('foo', 123)
+    !assert.isSet(!actual)
+    !json.Parse('null', !actual)
+    !assert.isUnset(!actual)
+endmethod
+
+define method .testParseObject(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object POSITION()
+    !json.Parse('{"east":123,"north":456,"up":789,"origin":"/*"}', !actual)
+    !assert.equal(object POSITION('E 123 N 456 U 789 WRT /*'), !actual)
+endmethod
+
+define method .testParseObjectString(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object POSITION()
+    !json.Parse('"E 123 N 456 U 789 WRT /*"', !actual)
+    !assert.equal(object POSITION('E 123 N 456 U 789 WRT /*'), !actual)
+endmethod
+
+define method .testParseObjectNull(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !actual = object POSITION('E 123 N 456 U 789')
+    !assert.isSet(!actual)
+    !json.Parse('null', !actual)
+    !assert.isUnset(!actual)
+endmethod
+
+define method .testStringifyString(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('"foo bar baz"', !json.Stringify('foo bar baz'))
+endmethod
+
+define method .testStringifyStringWithBackslashes(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('"foo\\bar\\baz"', !json.Stringify('foo\bar\baz'))
+endmethod
+
+define method .testStringifyStringWithQuotes(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('"foo \"bar\" baz"', !json.Stringify('foo "bar" baz'))
+endmethod
+
+define method .testStringifyStringWithTabs(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('"foo\tbar\tbaz"', !json.Stringify('foo	bar	baz'))
+endmethod
+
+define method .testStringifyStringWithLFs(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('"foo\nbar\nbaz"', !json.Stringify('foo
+bar
+baz'))
+endmethod
+
+define method .testStringifyStringNull(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('null', !json.Stringify(object STRING()))
+endmethod
+
+define method .testStringifyBooleanTrue(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('true', !json.Stringify(true))
+endmethod
+
+define method .testStringifyBooleanFalse(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('false', !json.Stringify(false))
+endmethod
+
+define method .testStringifyBooleanNull(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('null', !json.Stringify(object BOOLEAN()))
+endmethod
+
+define method .testStringifyReal(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('123', !json.Stringify(123.0))
+endmethod
+
+define method .testStringifyRealWithPoint(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('0.123', !json.Stringify(0.123))
+endmethod
+
+define method .testStringifyRealWithUnit(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('"123mm"', !json.Stringify(123.0mm))
+    !assert.equal('"456.7kg"', !json.Stringify(456.7kg))
+endmethod
+
+define method .testStringifyRealNull(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('null', !json.Stringify(object REAL()))
+endmethod
+
+define method .testStringifyDBRef(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('"/*"', !json.Stringify(object DBREF('/*')))
+endmethod
+
+define method .testStringifyDBRefNull(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('null', !json.Stringify(object DBREF('Nulref')))
+endmethod
+
+define method .testStringifyArray(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('["foo","bar","baz"]', !json.Stringify(Split('foo bar baz')))
+endmethod
+
+define method .testStringifyArrayNull(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('[]', !json.Stringify(object ARRAY()))
+endmethod
+
+define method .testStringifyDictionary(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !dict = object DICTIONARY()
+    !dict.SetValue('foo', 123)
+    !dict.SetValue('bar', 456)
+    !dict.SetValue('baz', 789)
+    !json = object PMLJSON()
+    !assert.equal('{"foo":123,"bar":456,"baz":789}', !json.Stringify(!dict))
+endmethod
+
+define method .testStringifyDictionaryNull(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('{}', !json.Stringify(object DICTIONARY()))
+endmethod
+
+define method .testStringifyObject(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !box = object GMFBOX()
+    !box.xLength = 123
+    !box.yLength = 456
+    !box.zLength = 789
+    !box.position = object POSITION('E 123 N 456 U 789')
+    !box.orientation = object ORIENTATION('Y is W and Z is U')
+    !json = object PMLJSON()
+    !assert.equal('{"xLength":123,"yLength":456,"zLength":789,"position":{"EAST":"123mm","NORTH":"456mm","ORIGIN":"/*","UP":"789mm"},"orientation":{"ALPHA":0,"BETA":0,"GAMMA":90,"ORIGIN":"/*"}}', !json.Stringify(!box))
+endmethod
+
+define method .testStringifyObjectWithNoMembers(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('"100mm"', !json.Stringify(object BORE('100mm')))
+endmethod
+
+define method .testStringifyObjectNullWithNoMembers(!assert is PmlAssert)
+    using namespace 'PMLJsonNet'
+    !json = object PMLJSON()
+    !assert.equal('null', !json.Stringify(object BORE()))
+endmethod

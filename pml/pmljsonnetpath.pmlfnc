@@ -1,0 +1,16 @@
+﻿-- PMLJSONNETPATH function returns the path of PMLJsonNet.dll for the appropriate E3D Design version.
+define function !!PMLJSONNETPATH() is STRING
+    if Undefined(!!PMLJSONNETPATH) then
+        !myself = 'pmljsonnetpath.pmlfnc'
+        !bin = 'PMLJsonNet'
+        if !!module().product eq 'AVEVA E3D Design' and !!module().version.MatchWild('Mk2.1.*') then
+            !ver = 'E3D2.1'
+        elseif !!module().product eq 'AVEVA E3D Design' and !!module().version.MatchWild('Mk3.1.*') then
+            !ver = 'E3D3.1'
+        else
+            !ver = 'UE4.0'
+        endif
+        !!PMLJSONNETPATH = !!PML.GetPathName(!myself).Replace('/', '\').Replace(!myself, !ver + '\' + !bin, -1, 1)
+    endif
+    return !!PMLJSONNETPATH
+endfunction
