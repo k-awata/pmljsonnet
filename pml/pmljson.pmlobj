@@ -19,7 +19,7 @@ define method .Parse(!file is FILE, !object is ANY)
     if not !file.Exists() then
         return error 1 'File $!<file> does not exist.'
     endif
-    !this.net.ReadFile(!file.Name())
+    !this.net.ReadFile(!file.PathName() + '\' + !file.Entry())
     !this.Unmarshal(!object)
 endmethod
 
