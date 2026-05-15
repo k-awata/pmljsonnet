@@ -232,7 +232,7 @@ namespace PMLJsonNet
             }
             if (token is JObject obj)
             {
-                double idx = 1;
+                double idx = 1.0;
                 foreach (var p in obj.Properties())
                 {
                     result.Add(idx++, p.Name);
