@@ -101,7 +101,7 @@ namespace PMLJsonNet
                     writer.Formatting = Formatting.Indented;
                     writer.Indentation = (int)indent;
                 }
-                token.WriteTo(writer);
+                token.WriteTo(writer, null);
             }
         }
 
