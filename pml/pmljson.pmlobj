@@ -90,17 +90,17 @@ define method .Unmarshal(!object is STRING)
     endif
 endmethod
 
--- -- Unmarshal method maps the PMLJsonNet data to the specified BOOLEAN object.
+-- Unmarshal method maps the PMLJsonNet data to the specified BOOLEAN object.
 define method .Unmarshal(!object is BOOLEAN)
     !object = !this.net.GetValue().Boolean()
 endmethod
 
--- -- Unmarshal method maps the PMLJsonNet data to the specified REAL object.
+-- Unmarshal method maps the PMLJsonNet data to the specified REAL object.
 define method .Unmarshal(!object is REAL)
     !object = !this.net.GetValue().Real()
 endmethod
 
--- -- Unmarshal method maps the PMLJsonNet data to the specified DBREF object.
+-- Unmarshal method maps the PMLJsonNet data to the specified DBREF object.
 define method .Unmarshal(!object is DBREF)
     !object = !this.net.GetValue().DBRef()
 endmethod
